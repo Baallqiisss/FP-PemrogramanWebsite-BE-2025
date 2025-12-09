@@ -28,7 +28,8 @@
     "sort:package": "sort-package-json",
     "start:deploy:dev": "dotenv -e .env.development -- ./server",
     "start:deploy:prod": "dotenv -e .env.production -- ./server",
-    "start:dev": "dotenv -e .env.development -- bun run --watch src/main.ts"
+    "start:dev": "dotenv -e .env.development -- bun run --watch src/main.ts",
+    "studio": "dotenv -e .env.development -- prisma studio"
   },
   "lint-staged": {
     "package.json": "bun sort:package",
