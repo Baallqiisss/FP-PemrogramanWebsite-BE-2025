@@ -3,6 +3,7 @@
 import { Router } from 'express';
 
 import { AnagramController } from './anagram/anagram.controller';
+import { CrosswordController } from './crossword/crossword.controller';
 import { MazeChaseController } from './maze-chase/maze-chase.controller';
 import { PairOrNoPairController } from './pair-or-no-pair/pair-or-no-pair.controller';
 import { QuizController } from './quiz/quiz.controller';
@@ -19,6 +20,7 @@ GameListRouter.use('/maze-chase', MazeChaseController);
 GameListRouter.use('/sliding-puzzle', SlidingPuzzleController);
 GameListRouter.use('/speed-sorting', SpeedSortingController);
 GameListRouter.use('/anagram', AnagramController);
+GameListRouter.use('/crossword', CrosswordController);
 GameListRouter.use('/pair-or-no-pair', PairOrNoPairController);
 GameListRouter.use('/type-speed', TypeSpeedController);
 GameListRouter.use('/spin-the-wheel', SpinTheWheelController);

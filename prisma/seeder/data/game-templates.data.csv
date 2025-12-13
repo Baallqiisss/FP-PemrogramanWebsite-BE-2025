@@ -14,7 +14,7 @@ d97887a7-63bf-47ab-8531-38d3c44943fb,match-up,"Match Up","Lorem",table,false,fal
 785e62e3-fc58-4cbd-9ffe-c0063c0c1207,word-search,"Word Search","Lorem",text-search,true,true
 a67b668c-e95d-483e-8d4e-385b050f5646,gameshow-quiz,"Gameshow Quiz","Lorem",theater,true,false
 945328c2-a578-4a62-af7d-4ef93ee000e3,maze-chase,"Maze Chase","Lorem",gamepad-directional,false,true
-87338387-b0cc-462e-9489-a0070f98c3a1,crossword,"Crossword","Lorem",panels-right-bottom,false,false
+87338387-b0cc-462e-9489-a0070f98c3a1,crossword,"Crossword","TTS asik cihuy",panels-right-bottom,false,false
 a2678379-5c86-4f05-a10a-f37370732e1d,labelled-diagram,"Labelled Diagram","Lorem",pin,false,false
 ac8b43c2-1bee-4a3f-a9ad-b8aa6f8a8d10,true-or-false,"True or False","Lorem",book-open-check,true,false
 374043f0-8c5c-4c0e-9985-cb8e2ef68936,hangman,"Hangman","Lorem",skull,false,true
