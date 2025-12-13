@@ -24,5 +24,4 @@ networks:
     driver: bridge
 
 volumes:
-
-  mysqldata:
+  mysqldata::
