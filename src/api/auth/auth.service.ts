@@ -96,6 +96,89 @@ export abstract class AuthService {
     };
   }
 
+  static async updateMe(user_id: string, data: { username?: string; profile_picture?: File }) {
+    const user = await this.findUser(undefined, user_id);
+
+    if (!user)
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
+
+    let updatedPicturePath: string | undefined;
+
+    if (data.profile_picture) {
+      updatedPicturePath = await FileManager.upload(
+        'profile-picture',
+        data.profile_picture,
+      );
+      if (user.profile_picture) {
+        await FileManager.remove(user.profile_picture);
+      }
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: user_id },
+      data: {
+        ...(data.username && { username: data.username }),
+        ...(updatedPicturePath && { profile_picture: updatedPicturePath }),
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        profile_picture: true,
+        total_game_played: true,
+      },
+    });
+
+    const gameLiked = await prisma.likedGames.aggregate({
+      where: {
+        AND: [{ user_id }, { game: { is_published: true } }],
+      },
+      _count: { id: true },
+    });
+
+    return {
+      ...updatedUser,
+      total_game_liked: gameLiked._count.id,
+    };
+  }
+
+  static async changePassword(
+    user_id: string,
+    data: { old_password: string; new_password: string; confirm_password: string },
+  ) {
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: {
+        id: true,
+        password: true,
+      },
+    });
+
+    if (!user)
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
+
+    if (data.new_password !== data.confirm_password)
+      throw new ErrorResponse(
+        StatusCodes.BAD_REQUEST,
+        'New password and confirm password do not match',
+      );
+
+    const isOldPasswordValid = await password.verify(data.old_password, user.password);
+
+    if (!isOldPasswordValid)
+      throw new ErrorResponse(StatusCodes.BAD_REQUEST, 'Invalid old password');
+
+    const hashedNewPassword = await password.hash(data.new_password, 'bcrypt');
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { password: hashedNewPassword },
+    });
+
+    return;
+  }
+
   private static async findUser(email?: string, id?: string) {
     return await prisma.users.findUnique({
       where: {

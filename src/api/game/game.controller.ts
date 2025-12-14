@@ -15,6 +15,7 @@ import {
 import { AdditionalValidation } from '@/utils';
 
 import { GameService } from './game.service';
+import { GameScoreController } from './game-score/game-score.controller';
 import GameListRouter from './game-list/game-list.router';
 import {
   GamePaginateQuerySchema,
@@ -228,4 +229,5 @@ export const GameController = Router()
       }
     },
   )
+  .use('/score', GameScoreController)
   .use('/game-type', GameListRouter);

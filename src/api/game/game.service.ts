@@ -91,7 +91,8 @@ export abstract class GameService {
 
     const cleanedResult = paginationResult.data.map(game => ({
       ...game,
-      game_template: game.game_template.slug,
+      game_template: undefined,
+      game_template_slug: game.game_template.slug,
       creator: undefined,
       is_published: is_private ? game.is_published : undefined,
       creator_id: user_id ? undefined : game.creator.id,

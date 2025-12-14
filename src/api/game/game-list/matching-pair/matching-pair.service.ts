@@ -14,12 +14,25 @@ import {
 export abstract class MatchingPairService {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   private static MATCHING_PAIR_SLUG = 'matching-pair';
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  private static PAIR_OR_NO_PAIR_SLUG = 'pair-or-no-pair';
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  private static ACCEPTED_SLUGS = [
+    this.MATCHING_PAIR_SLUG,
+    this.PAIR_OR_NO_PAIR_SLUG,
+  ];
 
-  static async createMatchingPair(data: ICreateMatchingPair, user_id: string) {
+  static async createMatchingPair(
+    data: ICreateMatchingPair,
+    user_id: string,
+    templateSlug?: string,
+  ) {
     await this.existGameCheck(data.name);
 
     const newGameId = v4();
-    const gameTemplateId = await this.getGameTemplateId();
+    const gameTemplateId = await this.getGameTemplateId(
+      templateSlug || this.MATCHING_PAIR_SLUG,
+    );
 
     const thumbnailImagePath = await FileManager.upload(
       `game/matching-pair/${newGameId}`,
@@ -27,6 +40,7 @@ export abstract class MatchingPairService {
     );
 
     const imageArray: string[] = [];
+    let itemsArray: IMatchingPairJson['items'];
 
     if (data.files_to_upload) {
       for (const image of data.files_to_upload) {
@@ -38,10 +52,20 @@ export abstract class MatchingPairService {
       }
     }
 
+    if (data.items) {
+      // Process items: assign IDs if not provided
+      itemsArray = data.items.map((item, index) => ({
+        id: item.id || String(index),
+        left_content: item.left_content,
+        right_content: item.right_content,
+      }));
+    }
+
     const gameJson: IMatchingPairJson = {
-      countdown: data.countdown,
-      score_per_match: data.score_per_match,
-      images: imageArray,
+      countdown: data.countdown ?? 60, // Default countdown
+      score_per_match: data.score_per_match ?? 10, // Default score
+      ...(imageArray.length > 0 && { images: imageArray }),
+      ...(itemsArray && { items: itemsArray }),
     };
 
     const newGame = await prisma.games.create({
@@ -84,7 +108,7 @@ export abstract class MatchingPairService {
       },
     });
 
-    if (!game || game.game_template.slug !== this.MATCHING_PAIR_SLUG)
+    if (!game || !this.ACCEPTED_SLUGS.includes(game.game_template.slug))
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
     if (user_role !== 'SUPER_ADMIN' && game.creator_id !== user_id)
@@ -106,7 +130,8 @@ export abstract class MatchingPairService {
       is_published: game.is_published,
       countdown: gameJson.countdown,
       score_per_match: gameJson.score_per_match,
-      images: gameJson.images,
+      ...(gameJson.images && { images: gameJson.images }),
+      ...(gameJson.items && { items: gameJson.items }),
     };
   }
 
@@ -135,7 +160,7 @@ export abstract class MatchingPairService {
     if (
       !game ||
       (is_public && !game.is_published) ||
-      game.game_template.slug !== this.MATCHING_PAIR_SLUG
+      !this.ACCEPTED_SLUGS.includes(game.game_template.slug)
     )
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
@@ -152,6 +177,24 @@ export abstract class MatchingPairService {
     const gameJson = game.game_json as unknown as IMatchingPairJson | null;
 
     if (!gameJson)
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game data not found');
+
+    // If items format exists (for pair-or-no-pair), return items directly
+    if (gameJson.items && gameJson.items.length > 0) {
+      return {
+        id: game.id,
+        name: game.name,
+        description: game.description,
+        thumbnail_image: game.thumbnail_image,
+        countdown: gameJson.countdown,
+        score_per_match: gameJson.score_per_match,
+        items: gameJson.items,
+        is_published: game.is_published,
+      };
+    }
+
+    // Otherwise, use images format (for backward compatibility)
+    if (!gameJson.images || gameJson.images.length === 0)
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game data not found');
 
     // Duplicate images to make pairs
@@ -188,11 +231,23 @@ export abstract class MatchingPairService {
       },
     });
 
-    if (!game || game.game_template.slug !== this.MATCHING_PAIR_SLUG)
+    if (!game || !this.ACCEPTED_SLUGS.includes(game.game_template.slug))
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
-    const gameJson = game.game_json as unknown as IMatchingPairJson;
-    const totalImages = gameJson.images.length;
+    const gameJson = game.game_json as unknown as IMatchingPairJson | null;
+
+    if (!gameJson)
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game data not found');
+
+    // Support both items and images format
+    let totalPairs: number;
+    if (gameJson.items && gameJson.items.length > 0) {
+      totalPairs = gameJson.items.length;
+    } else if (gameJson.images && gameJson.images.length > 0) {
+      totalPairs = gameJson.images.length;
+    } else {
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game data not found');
+    }
 
     // Validate IDs
     const uniqueMatchedIds = new Set(data.matched_pair_ids);
@@ -203,22 +258,22 @@ export abstract class MatchingPairService {
     }
 
     for (const id of uniqueMatchedIds) {
-      if (id < 0 || id >= totalImages) {
+      if (id < 0 || id >= totalPairs) {
         throw new ErrorResponse(
           StatusCodes.BAD_REQUEST,
-          `Invalid image ID: ${id}`,
+          `Invalid pair ID: ${id}`,
         );
       }
     }
 
     const correctCount = uniqueMatchedIds.size;
     const score = correctCount * gameJson.score_per_match;
-    const maxScore = totalImages * gameJson.score_per_match;
+    const maxScore = totalPairs * gameJson.score_per_match;
     const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
     return {
       game_id,
-      total_pairs: totalImages,
+      total_pairs: totalPairs,
       matched_pairs_count: correctCount,
       score,
       max_score: maxScore,
@@ -245,7 +300,7 @@ export abstract class MatchingPairService {
       },
     });
 
-    if (!game || game.game_template.slug !== this.MATCHING_PAIR_SLUG)
+    if (!game || !this.ACCEPTED_SLUGS.includes(game.game_template.slug))
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
     if (user_role !== 'SUPER_ADMIN' && game.creator_id !== user_id)
@@ -266,7 +321,58 @@ export abstract class MatchingPairService {
       );
     }
 
-    const oldGameJson = game.game_json as unknown as IMatchingPairJson;
+    const oldGameJson = game.game_json as unknown as IMatchingPairJson | null;
+
+    if (!oldGameJson)
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game data not found');
+
+    // Handle items format (for pair-or-no-pair)
+    if (data.items) {
+      const itemsArray = data.items.map((item, index) => ({
+        id: item.id || String(index),
+        left_content: item.left_content,
+        right_content: item.right_content,
+      }));
+
+      const gameJson: IMatchingPairJson = {
+        countdown: data.countdown ?? oldGameJson.countdown ?? 60,
+        score_per_match:
+          data.score_per_match ?? oldGameJson.score_per_match ?? 10,
+        items: itemsArray,
+        ...(oldGameJson.images && { images: oldGameJson.images }),
+      };
+
+      const updateData: {
+        name?: string;
+        description?: string;
+        thumbnail_image: string;
+        is_published?: boolean;
+        game_json: Prisma.InputJsonValue;
+      } = {
+        thumbnail_image: thumbnailImagePath,
+        game_json: gameJson as unknown as Prisma.InputJsonValue,
+      };
+
+      if (data.name !== undefined) updateData.name = data.name;
+
+      if (data.description !== undefined)
+        updateData.description = data.description;
+
+      if (data.is_publish !== undefined)
+        updateData.is_published = data.is_publish;
+
+      const updatedGame = await prisma.games.update({
+        where: { id: game_id },
+        data: updateData,
+        select: {
+          id: true,
+        },
+      });
+
+      return updatedGame;
+    }
+
+    // Handle images format (for backward compatibility)
     const oldImages = oldGameJson.images || [];
     let newImages: string[] = [];
 
@@ -274,24 +380,10 @@ export abstract class MatchingPairService {
     if (data.existing_images) {
       newImages = data.existing_images.filter(img => oldImages.includes(img));
     } else if (data.existing_images === undefined && !data.files_to_upload) {
-      // If both are undefined, keep old images? Or if existing_images is undefined but files_to_upload is present?
-      // Usually if existing_images is not provided, we assume we keep all? Or none?
-      // In quiz, we map questions. Here we have a list.
-      // If existing_images is missing, we should probably keep all old images if we are not replacing the list.
-      // But if we want to remove images, we must send the list of images to keep.
-      // Let's assume if existing_images is NOT provided, we keep ALL old images.
       newImages = [...oldImages];
     } else {
-      // existing_images is undefined, but files_to_upload is present.
-      // If user wants to clear all old images, they should send empty array for existing_images.
-      // If they send nothing, we keep old images.
       newImages = [...oldImages];
     }
-
-    // If existing_images IS provided (even empty), we used that filtered list above.
-    // Wait, my logic above: if (data.existing_images) -> use it.
-    // if (data.existing_images === undefined) -> keep all.
-    // This seems correct for partial updates.
 
     // Handle new files
     if (data.files_to_upload) {
@@ -306,8 +398,6 @@ export abstract class MatchingPairService {
 
     // Check if we have too many images
     if (newImages.length > 32) {
-      // Cleanup uploaded files if error?
-      // For now just throw error.
       throw new ErrorResponse(StatusCodes.BAD_REQUEST, 'Max 32 images allowed');
     }
 
@@ -322,17 +412,31 @@ export abstract class MatchingPairService {
       countdown: data.countdown ?? oldGameJson.countdown,
       score_per_match: data.score_per_match ?? oldGameJson.score_per_match,
       images: newImages,
+      ...(oldGameJson.items && { items: oldGameJson.items }),
     };
+
+    const updateData: {
+      name?: string;
+      description?: string;
+      thumbnail_image: string;
+      is_published?: boolean;
+      game_json: Prisma.InputJsonValue;
+    } = {
+      thumbnail_image: thumbnailImagePath,
+      game_json: gameJson as unknown as Prisma.InputJsonValue,
+    };
+
+    if (data.name !== undefined) updateData.name = data.name;
+
+    if (data.description !== undefined)
+      updateData.description = data.description;
+
+    if (data.is_publish !== undefined)
+      updateData.is_published = data.is_publish;
 
     const updatedGame = await prisma.games.update({
       where: { id: game_id },
-      data: {
-        name: data.name,
-        description: data.description,
-        thumbnail_image: thumbnailImagePath,
-        is_published: data.is_publish,
-        game_json: gameJson as unknown as Prisma.InputJsonValue,
-      },
+      data: updateData,
       select: {
         id: true,
       },
@@ -359,7 +463,7 @@ export abstract class MatchingPairService {
       },
     });
 
-    if (!game || game.game_template.slug !== this.MATCHING_PAIR_SLUG)
+    if (!game || !this.ACCEPTED_SLUGS.includes(game.game_template.slug))
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
     if (user_role !== 'SUPER_ADMIN' && game.creator_id !== user_id)
@@ -387,11 +491,12 @@ export abstract class MatchingPairService {
   }
 
   private static async existGameCheck(game_name?: string, game_id?: string) {
-    const where: Record<string, unknown> = {};
-    if (game_name) where.name = game_name;
-    if (game_id) where.id = game_id;
+    if (!game_name) return null;
 
-    if (Object.keys(where).length === 0) return null;
+    const where: Prisma.GamesWhereInput = {
+      name: game_name,
+      ...(game_id && { id: { not: game_id } }),
+    };
 
     const game = await prisma.games.findFirst({
       where,
@@ -407,9 +512,11 @@ export abstract class MatchingPairService {
     return game;
   }
 
-  private static async getGameTemplateId() {
+  private static async getGameTemplateId(
+    slug: string = this.MATCHING_PAIR_SLUG,
+  ) {
     const result = await prisma.gameTemplates.findUnique({
-      where: { slug: this.MATCHING_PAIR_SLUG },
+      where: { slug },
       select: { id: true },
     });
 

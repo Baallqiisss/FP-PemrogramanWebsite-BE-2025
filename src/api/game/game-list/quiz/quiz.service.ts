@@ -551,7 +551,10 @@ export abstract class QuizService {
     });
 
     if (!result)
-      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game template not found');
+      throw new ErrorResponse(
+        StatusCodes.NOT_FOUND,
+        `Game template with slug '${this.QUIZ_SLUG}' not found. Please run database seeder.`,
+      );
 
     return result.id;
   }

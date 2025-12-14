@@ -28,6 +28,7 @@ model Users {
 
   games             Games[]
   liked_games       LikedGames[]
+  game_scores       GameScores[]
 }
 
 model GameTemplates {
@@ -65,6 +66,7 @@ model Games {
   updated_at        DateTime      @default(now()) @updatedAt
 
   liked             LikedGames[]
+  game_scores       GameScores[]
 
   @@index([name])
 }
@@ -81,4 +83,24 @@ model LikedGames {
   updated_at        DateTime      @default(now()) @updatedAt
 
   @@unique([user_id, game_id])
+}
+
+model GameScores {
+  id                String        @id @default(uuid())
+  user_id           String
+  game_id           String
+  score             Int
+  max_combo         Int           @default(0)
+  time_taken        Int           // in seconds
+  matched_pairs     Int
+  total_pairs        Int
+
+  user              Users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  game              Games         @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @default(now()) @updatedAt
+
+  @@index([game_id, score])
+  @@index([user_id])
 }

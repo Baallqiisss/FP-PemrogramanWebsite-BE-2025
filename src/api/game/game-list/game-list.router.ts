@@ -9,5 +9,6 @@ const GameListRouter = Router();
 
 GameListRouter.use('/quiz', QuizController);
 GameListRouter.use('/matching-pair', MatchingPairController);
+GameListRouter.use('/pair-or-no-pair', MatchingPairController);
 
 export default GameListRouter;

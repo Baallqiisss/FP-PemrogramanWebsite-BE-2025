@@ -18,10 +18,14 @@ import { GameService } from '../game/game.service';
 import { GamePaginateQuerySchema } from '../game/schema';
 import { AuthService } from './auth.service';
 import {
+  type IChangePassword,
   type ILogin,
   type IRegister,
+  type IUpdateMe,
+  ChangePasswordSchema,
   LoginSchema,
   RegisterSchema,
+  UpdateMeSchema,
 } from './schema';
 
 export const AuthController = Router()
@@ -112,6 +116,56 @@ export const AuthController = Router()
           'Get all user game (private) successfully',
           games.data,
           games.meta,
+        );
+
+        return response.status(result.statusCode).json(result.json());
+      } catch (error) {
+        return next(error);
+      }
+    },
+  )
+  .patch(
+    '/me',
+    validateAuth({}),
+    validateBody({
+      schema: UpdateMeSchema,
+      file_fields: [{ name: 'profile_picture', maxCount: 1 }],
+    }),
+    async (
+      request: AuthedRequest<{}, {}, IUpdateMe>,
+      response: Response,
+      next: NextFunction,
+    ) => {
+      try {
+        const data = await AuthService.updateMe(request.user!.user_id, request.body);
+        const result = new SuccessResponse(
+          StatusCodes.OK,
+          'Profile updated successfully',
+          data,
+        );
+
+        return response.status(result.statusCode).json(result.json());
+      } catch (error) {
+        return next(error);
+      }
+    },
+  )
+  .patch(
+    '/me/password',
+    validateAuth({}),
+    validateBody({
+      schema: ChangePasswordSchema,
+    }),
+    async (
+      request: AuthedRequest<{}, {}, IChangePassword>,
+      response: Response,
+      next: NextFunction,
+    ) => {
+      try {
+        await AuthService.changePassword(request.user!.user_id, request.body);
+        const result = new SuccessResponse(
+          StatusCodes.OK,
+          'Password changed successfully',
         );
 
         return response.status(result.statusCode).json(result.json());

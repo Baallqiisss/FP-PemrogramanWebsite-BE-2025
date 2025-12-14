@@ -23,10 +23,24 @@ import {
   UpdateMatchingPairSchema,
 } from './schema';
 
+// Helper function to detect template slug from request path
+const getTemplateSlugFromRequest = (request: Request): string => {
+  // Check originalUrl, url, or path for route detection
+  const fullPath = request.originalUrl || request.url || request.path || '';
+
+  if (fullPath.includes('/pair-or-no-pair')) {
+    return 'pair-or-no-pair';
+  }
+
+  return 'matching-pair';
+};
+
 export const MatchingPairController = Router()
+
   .post(
     '/',
     validateAuth({}),
+
     validateBody({
       schema: CreateMatchingPairSchema,
       file_fields: [
@@ -40,9 +54,11 @@ export const MatchingPairController = Router()
       next: NextFunction,
     ) => {
       try {
+        const templateSlug = getTemplateSlugFromRequest(request);
         const newGame = await MatchingPairService.createMatchingPair(
           request.body,
           request.user!.user_id,
+          templateSlug,
         );
         const result = new SuccessResponse(
           StatusCodes.CREATED,
