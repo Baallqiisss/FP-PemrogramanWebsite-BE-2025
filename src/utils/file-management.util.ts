@@ -6,6 +6,7 @@
 */
 
 import { existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 
 export abstract class FileManager {
@@ -33,5 +34,10 @@ export abstract class FileManager {
 
     const file = Bun.file(`./${file_path}`);
     await file.delete();
+  }
+
+  static async removeFolder(folder_path: string) {
+    if (!existsSync(folder_path)) return;
+    await rm(folder_path, { recursive: true, force: true });
   }
 }

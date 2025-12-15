@@ -103,9 +103,9 @@ export abstract class GameScoreService {
         data,
         meta: {
           total,
-          page: query.page,
-          per_page: query.per_page,
-          total_pages: lastPage,
+          currentPage: query.page,
+          perPage: query.per_page,
+          lastPage,
           prev: query.page > 1 ? query.page - 1 : null,
           next: query.page < lastPage ? query.page + 1 : null,
         },

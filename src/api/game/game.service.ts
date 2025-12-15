@@ -24,22 +24,37 @@ export abstract class GameService {
     user_id?: string,
     current_user_id?: string,
   ) {
+    const filters: Prisma.GamesWhereInput[] = [];
+
+    if (!is_private) {
+      filters.push({ is_published: true });
+    }
+
+    if (query.search) {
+      filters.push({
+        name: { contains: query.search, mode: 'insensitive' },
+      });
+    }
+
+    if (query.gameTypeSlug) {
+      filters.push({
+        game_template: { slug: query.gameTypeSlug },
+      });
+    }
+
+    if (user_id) {
+      filters.push({
+        creator: { id: user_id },
+      });
+    }
+
     const args: {
       where: Prisma.GamesWhereInput;
       select: Prisma.GamesSelect;
       orderBy: Prisma.GamesOrderByWithRelationInput[];
     } = {
       where: {
-        AND: [
-          { is_published: is_private ? undefined : true },
-          {
-            name: query.search
-              ? { contains: query.search, mode: 'insensitive' }
-              : undefined,
-          },
-          { game_template: { slug: query.gameTypeSlug } },
-          { creator: { id: user_id } },
-        ],
+        AND: filters.length > 0 ? filters : undefined,
       },
       select: {
         id: true,
@@ -47,6 +62,7 @@ export abstract class GameService {
         description: true,
         thumbnail_image: true,
         total_played: true,
+        is_published: is_private,
         _count: {
           select: {
             liked: true,
@@ -58,16 +74,19 @@ export abstract class GameService {
               select: { id: true },
             }
           : undefined,
-        is_published: is_private,
         game_template: {
           select: {
+            name: true,
             slug: true,
           },
         },
         creator: user_id
           ? undefined
           : {
-              select: { id: true, username: true },
+              select: {
+                id: true,
+                username: true,
+              },
             },
       },
       orderBy: [
@@ -83,15 +102,19 @@ export abstract class GameService {
     };
 
     const paginationResult = await paginate<
-      Games & { creator: Users } & { game_template: GameTemplates } & {
+      Games & {
+        creator: Users;
+        game_template: GameTemplates;
         _count: { liked: number };
-      } & { liked: LikedGames[] },
+        liked: LikedGames[];
+      },
       typeof args
     >(prisma.games, query.page, query.perPage, args);
 
     const cleanedResult = paginationResult.data.map(game => ({
       ...game,
       game_template: undefined,
+      game_template_name: game.game_template.name,
       game_template_slug: game.game_template.slug,
       creator: undefined,
       is_published: is_private ? game.is_published : undefined,
@@ -112,7 +135,7 @@ export abstract class GameService {
   }
 
   static async getAllGameTemplate(query: IGameTemplateQuery) {
-    const gameTemplates = await prisma.gameTemplates.findMany({
+    return prisma.gameTemplates.findMany({
       where: {
         AND: [
           {
@@ -137,8 +160,6 @@ export abstract class GameService {
         created_at: 'asc',
       },
     });
-
-    return gameTemplates;
   }
 
   static async updateGamePublishStatus(
@@ -151,15 +172,18 @@ export abstract class GameService {
       select: { creator_id: true },
     });
 
-    if (!game) throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    if (!game) {
+      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    }
 
-    if (user_role !== 'SUPER_ADMIN' || game.creator_id !== user_id)
+    if (user_role !== 'SUPER_ADMIN' && game.creator_id !== user_id) {
       throw new ErrorResponse(
         StatusCodes.FORBIDDEN,
         'User not allowed to edit this data',
       );
+    }
 
-    return await prisma.games.update({
+    return prisma.games.update({
       where: { id: data.game_id },
       data: { is_published: data.is_publish },
       select: { is_published: true },
@@ -172,23 +196,22 @@ export abstract class GameService {
       select: { is_published: true },
     });
 
-    if (!game || !game.is_published)
+    if (!game || !game.is_published) {
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    }
 
-    const transactionQueries: (
+    const queries: (
       | Prisma.Prisma__GamesClient<Games>
       | Prisma.Prisma__UsersClient<Users>
-    )[] = [];
-
-    transactionQueries.push(
+    )[] = [
       prisma.games.update({
         where: { id: game_id },
         data: { total_played: { increment: 1 } },
       }),
-    );
+    ];
 
     if (user_id) {
-      transactionQueries.push(
+      queries.push(
         prisma.users.update({
           where: { id: user_id },
           data: { total_game_played: { increment: 1 } },
@@ -196,7 +219,7 @@ export abstract class GameService {
       );
     }
 
-    await prisma.$transaction(transactionQueries);
+    await prisma.$transaction(queries);
   }
 
   static async updateGameLikeCount(
@@ -210,37 +233,37 @@ export abstract class GameService {
         select: { is_published: true },
       }),
       prisma.likedGames.findFirst({
-        where: {
-          AND: [{ game_id }, { user_id }],
-        },
+        where: { game_id, user_id },
         select: { id: true },
       }),
     ]);
 
-    if (!game || !game.is_published)
+    if (!game || !game.is_published) {
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    }
 
     if (is_like) {
-      if (userLikedGame)
+      if (userLikedGame) {
         throw new ErrorResponse(
           StatusCodes.BAD_REQUEST,
           'User already liked this game',
         );
+      }
 
       await prisma.likedGames.create({
-        data: {
-          game_id,
-          user_id,
-        },
+        data: { game_id, user_id },
       });
     } else {
-      if (!userLikedGame)
+      if (!userLikedGame) {
         throw new ErrorResponse(
           StatusCodes.BAD_REQUEST,
           'User did not liked this game',
         );
+      }
 
-      await prisma.likedGames.delete({ where: { id: userLikedGame.id } });
+      await prisma.likedGames.delete({
+        where: { id: userLikedGame.id },
+      });
     }
   }
 }

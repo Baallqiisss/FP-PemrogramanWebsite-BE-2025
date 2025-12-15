@@ -1,22 +1,30 @@
 {
- "compilerOptions": {
- "target": "es2020", // Diubah sedikit
- "module": "esnext", // ⬅️ PERUBAHAN KRITIS (dari CommonJS)
- "declaration": true,
- "removeComments": true,
- "moduleResolution": "bundler", // ⬅️ PERUBAHAN KRITIS (dari node)
- "types": ["bun-types"],
- "importsNotUsedAsValues": "remove",
- "esModuleInterop": true,
- "forceConsistentCasingInFileNames": true,
- "strict": true,
- "skipLibCheck": true,
- "outDir": "dist",
- "baseUrl": ".",
- "paths": {
- "@/*": ["./src/*"] // ⬅️ PERUBAHAN MINOR (memperjelas path src)
- }
- },
- "include": ["src/**/*"],
- "exclude": ["node_modules"]
+    "compilerOptions": {
+        "target": "es2021", // Diubah sedikit
+        "module": "esnext", // ⬅️ PERUBAHAN KRITIS (dari CommonJS)
+        "declaration": true,
+        "removeComments": true,
+        "moduleResolution": "bundler", // ⬅️ PERUBAHAN KRITIS (dari node)
+        "types": [
+            "bun-types"
+        ],
+        "importsNotUsedAsValues": "remove",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ] // ⬅️ PERUBAHAN MINOR (memperjelas path src)
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }

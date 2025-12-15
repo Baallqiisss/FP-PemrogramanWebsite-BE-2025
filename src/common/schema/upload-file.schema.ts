@@ -1,8 +1,9 @@
 import z from 'zod';
-import { type MimeTypes } from 'zod/v4/core/util.cjs';
+// import { type MimeTypes } from 'zod/v4/core/util.cjs'; // Broken import
+type IMimeTypes = string; // Temporary fix or use string if generic
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_IMAGE_TYPES: MimeTypes[] = [
+const ACCEPTED_IMAGE_TYPES: IMimeTypes[] = [
   'image/jpeg',
   'image/jpg',
   'image/png',
@@ -16,7 +17,7 @@ export const fileSchema = ({
   file_types = ACCEPTED_IMAGE_TYPES,
 }: {
   max_size?: number;
-  file_types?: MimeTypes[];
+  file_types?: IMimeTypes[];
 }) => {
   const schema = z.file().max(max_size).mime(file_types);
 

@@ -1,6 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -15,91 +15,111 @@ enum ROLE {
 }
 
 model Users {
-  id                String    @id @default(uuid())
-  email             String    @unique
+  id                String        @id @default(uuid())
+  email             String        @unique
   username          String
   password          String
-  role              ROLE      @default(USER)
+  role              ROLE          @default(USER)
   profile_picture   String?
-  total_game_played Int       @default(0)
-
-  created_at        DateTime  @default(now())
-  updated_at        DateTime  @default(now()) @updatedAt
-
-  games             Games[]
-  liked_games       LikedGames[]
-  game_scores       GameScores[]
-}
-
-model GameTemplates {
-  id                    String    @id @default(uuid())
-  name                  String
-  slug                  String    @unique
-  description           String
-  logo                  String?
-  is_time_limit_based   Boolean   @default(false)
-  is_life_based         Boolean   @default(false)
-
-  created_at            DateTime  @default(now())
-  updated_at            DateTime  @default(now()) @updatedAt
-
-  games                 Games[]
-  
-  @@index([slug, name])
-}
-
-model Games {
-  id                String        @id @default(uuid())
-  name              String        @unique
-  description       String?
-  thumbnail_image   String
-  game_template_id  String
-  creator_id        String
-  is_published      Boolean       @default(false)
-  game_json         Json
-  total_played      Int           @default(0)
-
-  creator           Users         @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  game_template     GameTemplates @relation(fields: [game_template_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  total_game_played Int           @default(0)
 
   created_at        DateTime      @default(now())
   updated_at        DateTime      @default(now()) @updatedAt
 
-  liked             LikedGames[]
+  games             Games[]
+  liked_games       LikedGames[]
   game_scores       GameScores[]
+  leaderboard       Leaderboard[]
+}
+
+model GameTemplates {
+  id                  String    @id @default(uuid())
+  name                String
+  slug                String    @unique
+  description         String
+  logo                String?
+  is_time_limit_based Boolean   @default(false)
+  is_life_based       Boolean   @default(false)
+
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @default(now()) @updatedAt
+
+  games               Games[]
+
+  @@index([slug, name])
+}
+
+model Games {
+  id               String        @id @default(uuid())
+  name             String        @unique
+  description      String?
+  thumbnail_image  String
+  game_template_id String
+  creator_id       String
+  is_published     Boolean       @default(false)
+  game_json        Json
+  total_played     Int           @default(0)
+
+  creator          Users         @relation(fields: [creator_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  game_template    GameTemplates @relation(fields: [game_template_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  created_at       DateTime      @default(now())
+  updated_at       DateTime      @default(now()) @updatedAt
+
+  liked            LikedGames[]
+  game_scores      GameScores[]
+  leaderboard      Leaderboard[]
 
   @@index([name])
 }
 
 model LikedGames {
-  id                String        @id @default(uuid())
-  user_id           String
-  game_id           String
+  id         String   @id @default(uuid())
+  user_id    String
+  game_id    String
 
-  user              Users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  game              Games         @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       Users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  game       Games   @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @default(now()) @updatedAt
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 
   @@unique([user_id, game_id])
 }
 
 model GameScores {
-  id                String        @id @default(uuid())
-  user_id           String
-  game_id           String
-  score             Int
-  max_combo         Int           @default(0)
-  time_taken        Int           // in seconds
-  matched_pairs     Int
-  total_pairs        Int
+  id            String   @id @default(uuid())
+  user_id       String
+  game_id       String
+  score         Int
+  max_combo     Int      @default(0)
+  time_taken    Int      // in seconds
+  matched_pairs Int
+  total_pairs   Int
 
-  user              Users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  game              Games         @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user          Users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  game          Games   @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @default(now()) @updatedAt
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now()) @updatedAt
+
+  @@index([game_id, score])
+  @@index([user_id])
+}
+
+model Leaderboard {
+  id          String   @id @default(uuid())
+  game_id     String
+  user_id     String?
+  score       Int
+  time_taken  Int?
+  difficulty  String?
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+
+  game        Games    @relation(fields: [game_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user        Users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([game_id, score])
   @@index([user_id])
