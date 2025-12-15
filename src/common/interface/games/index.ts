@@ -6,3 +6,4 @@ export * from './sliding-puzzle.interface';
 export * from './speed-sorting.interface';
 export * from './spin-the-wheel.interface';
 export * from './type-speed.interface';
+export * from './whack-a-mole.interface';
