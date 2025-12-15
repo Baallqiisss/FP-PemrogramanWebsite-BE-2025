@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import airplaneRouter from './airplane/airplane.router';
 import { AnagramController } from './anagram/anagram.controller';
 import { CrosswordController } from './crossword/crossword.controller';
 import { FindTheMatchController } from './find-the-match/find-the-match.controller';
@@ -20,10 +21,15 @@ gameListRouter.use('/maze-chase', MazeChaseController);
 gameListRouter.use('/sliding-puzzle', SlidingPuzzleController);
 gameListRouter.use('/speed-sorting', SpeedSortingController);
 gameListRouter.use('/anagram', AnagramController);
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 gameListRouter.use('/crossword', CrosswordController);
 gameListRouter.use('/find-the-match', FindTheMatchController);
 gameListRouter.use('/pair-or-no-pair', PairOrNoPairController);
 gameListRouter.use('/type-speed', TypeSpeedController);
+
+gameListRouter.use('/airplane', airplaneRouter);
+
 gameListRouter.use('/spin-the-wheel', SpinTheWheelController);
 gameListRouter.use('/true-or-false', TrueOrFalseController);
 gameListRouter.use('/whack-a-mole', WhackAMoleController);

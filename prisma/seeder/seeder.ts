@@ -7,6 +7,7 @@ import {
   userSeed,
   whackAMoleSeed,
 } from './seed';
+import { seedAirplaneGame } from './seed/airplane.seed';
 
 const prisma = new PrismaClient();
 
@@ -17,9 +18,12 @@ async function main() {
     await userSeed(process.env.NODE_ENV === 'production');
     await gameTemplateSeed();
     await quizSeed();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     await spinTheWheelSeed();
+
     await whackAMoleSeed();
-  } catch (error) {
+    await seedAirplaneGame();
+  } catch (error: unknown) {
     console.error('⛔ Seeding error:', error);
     process.exit(1);
   } finally {
