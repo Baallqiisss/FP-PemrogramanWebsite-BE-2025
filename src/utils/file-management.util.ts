@@ -1,3 +1,10 @@
+/* eslint-disable
+  @typescript-eslint/no-unsafe-assignment,
+  @typescript-eslint/no-unsafe-call,
+  @typescript-eslint/no-unsafe-member-access,
+  unicorn/prefer-code-point
+*/
+
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 

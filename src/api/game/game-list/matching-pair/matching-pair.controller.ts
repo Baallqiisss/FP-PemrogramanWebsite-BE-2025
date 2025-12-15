@@ -36,7 +36,6 @@ const getTemplateSlugFromRequest = (request: Request): string => {
 };
 
 export const MatchingPairController = Router()
-
   .post(
     '/',
     validateAuth({}),

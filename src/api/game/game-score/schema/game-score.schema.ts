@@ -19,4 +19,3 @@ export const GameScorePaginateQuerySchema = z.object({
 export type IGameScorePaginateQuery = z.infer<
   typeof GameScorePaginateQuerySchema
 >;
-

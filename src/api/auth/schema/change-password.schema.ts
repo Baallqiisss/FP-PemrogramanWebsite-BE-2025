@@ -12,4 +12,3 @@ export const ChangePasswordSchema = z
   });
 
 export type IChangePassword = z.infer<typeof ChangePasswordSchema>;
-

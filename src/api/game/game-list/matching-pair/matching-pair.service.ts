@@ -241,6 +241,7 @@ export abstract class MatchingPairService {
 
     // Support both items and images format
     let totalPairs: number;
+
     if (gameJson.items && gameJson.items.length > 0) {
       totalPairs = gameJson.items.length;
     } else if (gameJson.images && gameJson.images.length > 0) {

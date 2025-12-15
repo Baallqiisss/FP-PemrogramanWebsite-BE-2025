@@ -34,7 +34,7 @@ export const CreateMatchingPairSchema = z
           try {
             return JSON.parse(value) as z.infer<
               typeof MatchingPairItemSchema
-           >[];
+            >[];
           } catch {
             return;
           }

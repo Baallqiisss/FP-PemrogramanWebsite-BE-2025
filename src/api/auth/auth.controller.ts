@@ -18,11 +18,11 @@ import { GameService } from '../game/game.service';
 import { GamePaginateQuerySchema } from '../game/schema';
 import { AuthService } from './auth.service';
 import {
+  ChangePasswordSchema,
   type IChangePassword,
   type ILogin,
   type IRegister,
   type IUpdateMe,
-  ChangePasswordSchema,
   LoginSchema,
   RegisterSchema,
   UpdateMeSchema,
@@ -137,7 +137,10 @@ export const AuthController = Router()
       next: NextFunction,
     ) => {
       try {
-        const data = await AuthService.updateMe(request.user!.user_id, request.body);
+        const data = await AuthService.updateMe(
+          request.user!.user_id,
+          request.body,
+        );
         const result = new SuccessResponse(
           StatusCodes.OK,
           'Profile updated successfully',

@@ -15,7 +15,7 @@
     "docker:up:dev": "dotenv -e .env.development -- docker compose up -d",
     "docker:up:prod": "dotenv -e .env.production -- docker compose up -d",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "generate": "bunx prisma generate",
+    "generate": "dotenv -e .env.development -- bunx prisma generate",
     "lint": "eslint . --ext .js,.ts,.jsx,.tsx --max-warnings=0",
     "lint:fix": "eslint . --ext .js,.ts,.jsx,.tsx --max-warnings=0 --fix",
     "migrate:dev": "dotenv -e .env.development -- prisma migrate dev --schema ./prisma/schema.prisma",

@@ -19,7 +19,6 @@ import {
   CreateGameScoreSchema,
   GameScorePaginateQuerySchema,
   type ICreateGameScore,
-  type IGameScorePaginateQuery,
 } from './schema';
 
 export const GameScoreController = Router()
@@ -104,4 +103,3 @@ export const GameScoreController = Router()
       }
     },
   );
-

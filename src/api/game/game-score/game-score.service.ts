@@ -1,27 +1,27 @@
+import { Prisma } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 
 import { ErrorResponse, prisma } from '@/common';
 
-import {
-  type ICreateGameScore,
-  type IGameScorePaginateQuery,
-} from './schema';
+import { type ICreateGameScore, type IGameScorePaginateQuery } from './schema';
+
+function isPrismaKnownError(
+  error: unknown,
+): error is Prisma.PrismaClientKnownRequestError {
+  return error instanceof Prisma.PrismaClientKnownRequestError;
+}
 
 export abstract class GameScoreService {
-  static async createGameScore(
-    data: ICreateGameScore,
-    user_id: string,
-  ) {
-    // Verify game exists and is published
+  static async createGameScore(data: ICreateGameScore, user_id: string) {
     const game = await prisma.games.findUnique({
       where: { id: data.game_id },
       select: { id: true, is_published: true },
     });
 
-    if (!game || !game.is_published)
+    if (!game || !game.is_published) {
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    }
 
-    // Create score record
     try {
       const gameScore = await prisma.gameScores.create({
         data: {
@@ -43,44 +43,34 @@ export abstract class GameScoreService {
       });
 
       return gameScore;
-    } catch (error: any) {
-      // Check if it's a Prisma client error (model not found)
-      if (error.code === 'P2001' || error.message?.includes('gameScores')) {
+    } catch (error: unknown) {
+      if (isPrismaKnownError(error) && error.code === 'P2001') {
         throw new ErrorResponse(
           StatusCodes.INTERNAL_SERVER_ERROR,
           'GameScores model not found. Please run: npx prisma generate',
         );
       }
+
       throw error;
     }
   }
-
-  static async getLeaderboard(
-    game_id: string,
-    query: IGameScorePaginateQuery,
-  ) {
-    // Verify game exists
+  static async getLeaderboard(game_id: string, query: IGameScorePaginateQuery) {
     const game = await prisma.games.findUnique({
       where: { id: game_id },
-      select: { id: true, is_published: true },
+      select: { id: true },
     });
 
-    if (!game)
+    if (!game) {
       throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
+    }
 
     const skip = query.page > 0 ? query.per_page * (query.page - 1) : 0;
 
-    const where = {
-      game_id,
-    };
-
     try {
       const [total, data] = await prisma.$transaction([
-        prisma.gameScores.count({
-          where,
-        }),
+        prisma.gameScores.count({ where: { game_id } }),
         prisma.gameScores.findMany({
-          where,
+          where: { game_id },
           skip,
           take: query.per_page,
           select: {
@@ -101,8 +91,8 @@ export abstract class GameScoreService {
           },
           orderBy: [
             { score: 'desc' },
-            { time_taken: 'asc' }, // Faster time is better
-            { created_at: 'asc' }, // Earlier submission if tie
+            { time_taken: 'asc' },
+            { created_at: 'asc' },
           ],
         }),
       ]);
@@ -113,9 +103,6 @@ export abstract class GameScoreService {
         data,
         meta: {
           total,
-          lastPage,
-          currentPage: query.page,
-          perPage: query.per_page,
           page: query.page,
           per_page: query.per_page,
           total_pages: lastPage,
@@ -123,32 +110,22 @@ export abstract class GameScoreService {
           next: query.page < lastPage ? query.page + 1 : null,
         },
       };
-    } catch (error: any) {
-      // Check if it's a Prisma client error (model not found)
-      if (
-        error.code === 'P2001' ||
-        error.message?.includes('gameScores') ||
-        error.message?.includes('model.count')
-      ) {
+    } catch (error: unknown) {
+      if (isPrismaKnownError(error) && error.code === 'P2001') {
         throw new ErrorResponse(
           StatusCodes.INTERNAL_SERVER_ERROR,
           'GameScores model not found. Please run: npx prisma generate && npx prisma migrate dev',
         );
       }
+
       throw error;
     }
   }
 
   static async getUserBestScore(game_id: string, user_id: string) {
-    const bestScore = await prisma.gameScores.findFirst({
-      where: {
-        game_id,
-        user_id,
-      },
-      orderBy: [
-        { score: 'desc' },
-        { time_taken: 'asc' },
-      ],
+    return prisma.gameScores.findFirst({
+      where: { game_id, user_id },
+      orderBy: [{ score: 'desc' }, { time_taken: 'asc' }],
       select: {
         id: true,
         score: true,
@@ -159,8 +136,5 @@ export abstract class GameScoreService {
         created_at: true,
       },
     });
-
-    return bestScore;
   }
 }
-

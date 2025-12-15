@@ -10,4 +10,3 @@ export const UpdateMeSchema = z
   .partial();
 
 export type IUpdateMe = z.infer<typeof UpdateMeSchema>;
-

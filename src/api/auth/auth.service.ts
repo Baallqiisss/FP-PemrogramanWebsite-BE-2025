@@ -96,11 +96,13 @@ export abstract class AuthService {
     };
   }
 
-  static async updateMe(user_id: string, data: { username?: string; profile_picture?: File }) {
+  static async updateMe(
+    user_id: string,
+    data: { username?: string; profile_picture?: File },
+  ) {
     const user = await this.findUser(undefined, user_id);
 
-    if (!user)
-      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
+    if (!user) throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
 
     let updatedPicturePath: string | undefined;
 
@@ -109,6 +111,7 @@ export abstract class AuthService {
         'profile-picture',
         data.profile_picture,
       );
+
       if (user.profile_picture) {
         await FileManager.remove(user.profile_picture);
       }
@@ -145,7 +148,11 @@ export abstract class AuthService {
 
   static async changePassword(
     user_id: string,
-    data: { old_password: string; new_password: string; confirm_password: string },
+    data: {
+      old_password: string;
+      new_password: string;
+      confirm_password: string;
+    },
   ) {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
@@ -155,8 +162,7 @@ export abstract class AuthService {
       },
     });
 
-    if (!user)
-      throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
+    if (!user) throw new ErrorResponse(StatusCodes.NOT_FOUND, 'User not found');
 
     if (data.new_password !== data.confirm_password)
       throw new ErrorResponse(
@@ -164,7 +170,10 @@ export abstract class AuthService {
         'New password and confirm password do not match',
       );
 
-    const isOldPasswordValid = await password.verify(data.old_password, user.password);
+    const isOldPasswordValid = await password.verify(
+      data.old_password,
+      user.password,
+    );
 
     if (!isOldPasswordValid)
       throw new ErrorResponse(StatusCodes.BAD_REQUEST, 'Invalid old password');

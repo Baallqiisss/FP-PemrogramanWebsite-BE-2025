@@ -15,8 +15,8 @@ import {
 import { AdditionalValidation } from '@/utils';
 
 import { GameService } from './game.service';
-import { GameScoreController } from './game-score/game-score.controller';
 import GameListRouter from './game-list/game-list.router';
+import { GameScoreController } from './game-score/game-score.controller';
 import {
   GamePaginateQuerySchema,
   GameTemplateQuerySchema,
